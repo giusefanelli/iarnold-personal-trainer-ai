@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IArnold - Il tuo Personal Trainer AI</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @media print {
+        body {
+          background: white !important;
+        }
+        body * {
+          visibility: hidden;
+        }
+        #printable-area, #printable-area * {
+          visibility: visible;
+        }
+        #printable-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          color: black; /* Set base text color for printing */
+        }
+        /* Override dark mode colors for printing */
+        #printable-area div,
+        #printable-area p,
+        #printable-area span,
+        #printable-area h1,
+        #printable-area h3,
+        #printable-area td,
+        #printable-area th,
+        #printable-area li,
+        #printable-area ul {
+          color: black !important;
+          background-color: transparent !important;
+          border-color: #ccc !important;
+        }
+        #printable-area .text-cyan-400 {
+          color: #0891b2 !important; /* A darker, printable cyan */
+        }
+        #printable-area thead {
+          background-color: #f3f4f6 !important;
+          -webkit-print-color-adjust: exact; /* Ensure background color prints */
+          print-color-adjust: exact;
+        }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in {
+        animation: fade-in 0.5s ease-out forwards;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
