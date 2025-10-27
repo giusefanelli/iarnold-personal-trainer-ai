@@ -33,6 +33,8 @@ function App() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
+  // Check for the API key at the top level
+  const isApiKeyMissing = !import.meta.env.VITE_GEMINI_API_KEY;
 
   const loadUserDataFor = (userName: string) => {
     try {
@@ -54,6 +56,8 @@ function App() {
   };
 
   useEffect(() => {
+    if (isApiKeyMissing) return; // Don't proceed if API key is missing
+
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       setCurrentUser(savedUser);
@@ -75,7 +79,7 @@ function App() {
         sessionStorage.setItem(`welcomeModalShown_${savedUser}`, 'true');
       }
     }
-  }, []);
+  }, [isApiKeyMissing]);
   
   const handleLogin = (name: string, rememberMe: boolean) => {
     setCurrentUser(name);
@@ -230,7 +234,6 @@ function App() {
   };
 
   const renderContent = () => {
-    const isApiKeyMissing = !process.env.API_KEY;
     if (isApiKeyMissing) {
       return <ApiKeyPrompt />;
     }

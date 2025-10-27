@@ -1,17 +1,16 @@
 
-
-
 import { GoogleGenAI, Type, FunctionDeclaration, GenerateContentResponse } from "@google/genai";
 import { UserData, WorkoutPlanType, HistoryEntry } from '../types';
 
 // A factory function to get the AI client.
 // This prevents the app from crashing on module load if the API key is missing.
-// The UI in App.tsx will show a prompt instead of allowing this function to be called.
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
+  // Vite exposes env variables through `import.meta.env`
+  // Variables prefixed with VITE_ are exposed to the client-side code.
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    // This should ideally not be reached because of the UI check.
-    throw new Error("La chiave API di Google Gemini non è configurata. Imposta la variabile d'ambiente API_KEY.");
+    // This should ideally not be reached because of the UI check in App.tsx.
+    throw new Error("La chiave API di Google Gemini non è configurata. Imposta la variabile d'ambiente VITE_GEMINI_API_KEY.");
   }
   return new GoogleGenAI({ apiKey });
 };
