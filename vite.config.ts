@@ -8,7 +8,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'maskable-icon.svg'],
+      devOptions: {
+        enabled: true // Enable PWA in dev mode for testing
+      },
       manifest: {
         name: 'IArnold - Personal Trainer AI',
         short_name: 'IArnold',
@@ -17,27 +19,30 @@ export default defineConfig({
         background_color: '#020617',
         display: 'standalone',
         orientation: 'portrait',
+        scope: '/',
+        start_url: '/',
+        id: '/index.html',
         icons: [
           {
             src: 'icon-192.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
-            purpose: 'any',
+            purpose: 'any'
           },
           {
             src: 'icon-512.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
-            purpose: 'any',
+            purpose: 'any'
           },
           {
             src: 'maskable-icon.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
-            purpose: 'maskable',
-          },
-        ],
-      },
-    }),
-  ],
+            purpose: 'maskable'
+          }
+        ]
+      }
+    })
+  ]
 });
