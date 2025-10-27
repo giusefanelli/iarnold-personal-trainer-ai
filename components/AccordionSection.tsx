@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 
@@ -8,9 +7,10 @@ interface Props {
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
-const AccordionSection: React.FC<Props> = ({ title, subtitle, isOpen, onToggle, children }) => {
+const AccordionSection: React.FC<Props> = ({ title, subtitle, isOpen, onToggle, children, icon }) => {
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden transition-all duration-300">
       <button
@@ -19,9 +19,12 @@ const AccordionSection: React.FC<Props> = ({ title, subtitle, isOpen, onToggle, 
         className="w-full flex justify-between items-center p-6 text-left"
         aria-expanded={isOpen}
       >
-        <div>
-          <h2 className="text-xl font-bold text-cyan-400 mb-1">{title}</h2>
-          <p className="text-slate-400 text-sm">{subtitle}</p>
+        <div className="flex items-center gap-4">
+          {icon}
+          <div>
+            <h2 className="text-xl font-bold text-cyan-400 mb-1">{title}</h2>
+            <p className="text-slate-400 text-sm">{subtitle}</p>
+          </div>
         </div>
         <ChevronDownIcon
           className={`w-6 h-6 text-slate-400 transition-transform duration-300 ${

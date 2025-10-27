@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface Props {
@@ -10,22 +9,22 @@ const guideSteps = [
   {
     title: "Benvenuto in IArnold!",
     content: "Questa guida rapida ti mostrerà come ottenere il massimo dal tuo Personal Trainer AI. Inizia compilando il modulo con i tuoi dati e obiettivi.",
-    targetClass: ".bg-slate-800\\/50", // A generic class for the form
   },
   {
     title: "La Tua Scheda Interattiva",
-    content: "Una volta generata la scheda, puoi interagire con essa! Clicca sul nome di un esercizio per vederne l'esecuzione su YouTube o clicca sull'icona di scambio per trovare delle alternative.",
-    targetClass: "#printable-area",
+    content: "Una volta generata la scheda, puoi interagire con essa! Clicca sul nome di un esercizio per vederne l'esecuzione su YouTube o sull'icona di scambio per trovare alternative.",
+  },
+  {
+    title: "AI Vision Coach (Beta)",
+    content: "Premi l'icona della fotocamera 📸 accanto a un esercizio supportato per attivare il coach virtuale. Usa la fotocamera per ricevere feedback in tempo reale sulla tua esecuzione e contare le ripetizioni.",
   },
   {
     title: "Chatta con l'IA",
     content: "Hai dubbi sulla scheda? Chiedi direttamente a IArnold! L'IA è consapevole del tuo piano e può darti consigli, spiegazioni e persino cercarti video.",
-    targetClass: ".mt-12", // Class for the chat component
   },
   {
     title: "Monitora i Tuoi Progressi",
     content: "Registra i pesi che utilizzi e consulta la sezione 'I miei progressi' per visualizzare grafici e KPI sulla tua performance, come la consistenza e il volume totale.",
-    targetClass: ".flex-items-center.gap-2", // Class for the header buttons
   },
 ];
 

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { HistoryEntry } from '../types';
 import { CalendarIcon } from './icons/CalendarIcon';
@@ -32,7 +33,7 @@ const History: React.FC<Props> = ({ history, onView, onDelete, onGoBack, onClear
   return (
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-cyan-400">Le mie schede</h2>
+        <h2 className="text-3xl font-bold text-cyan-400">LE MIE SCHEDE</h2>
         <button
           onClick={onGoBack}
           className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-600 transition-colors"
@@ -42,13 +43,13 @@ const History: React.FC<Props> = ({ history, onView, onDelete, onGoBack, onClear
       </div>
 
       {history.length === 0 ? (
-        <div className="text-center p-8 bg-slate-800/50 border border-slate-700 rounded-lg">
+        <div className="text-center p-8 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg">
           <p className="text-slate-400">Non hai ancora generato nessuna scheda. Creane una per vederla qui!</p>
         </div>
       ) : (
         <div className="space-y-4">
           {history.map(entry => (
-            <div key={entry.id} className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div key={entry.id} className="p-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex-grow">
                 <h3 className="text-lg font-bold text-white">{formatHistoryTitle(entry)}</h3>
                 <p className="text-sm text-slate-300">{formatHistorySubtitle(entry)}</p>

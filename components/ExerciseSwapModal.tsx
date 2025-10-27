@@ -9,9 +9,10 @@ interface Props {
   muscleGroupFocus: string;
   equipment: 'gym' | 'homegym' | 'dumbbells_bands';
   onSelectAlternative: (newExercise: string) => void;
+  position: { top: number; left: number | string; right?: number };
 }
 
-const ExerciseSwapModal: React.FC<Props> = ({ isOpen, onClose, exerciseName, muscleGroupFocus, equipment, onSelectAlternative }) => {
+const ExerciseSwapModal: React.FC<Props> = ({ isOpen, onClose, exerciseName, muscleGroupFocus, equipment, onSelectAlternative, position }) => {
   const [alternatives, setAlternatives] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,15 +42,16 @@ const ExerciseSwapModal: React.FC<Props> = ({ isOpen, onClose, exerciseName, mus
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fade-in print:hidden"
+      className="fixed inset-0 bg-black/70 z-50 animate-fade-in print:hidden"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="swap-modal-title"
     >
       <div
-        className="bg-slate-800 border border-slate-700 rounded-xl p-6 md:p-8 w-full max-w-md"
+        className="absolute bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-sm"
+        style={{ top: position.top, left: position.left, right: position.right }}
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="swap-modal-title"
       >
         <h2 id="swap-modal-title" className="text-xl font-bold text-cyan-400 mb-2">Sostituisci Esercizio</h2>
         <p className="text-slate-300 mb-4">Alternative per <span className="font-semibold text-white">{exerciseName}</span>:</p>

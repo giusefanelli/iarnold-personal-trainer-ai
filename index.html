@@ -8,11 +8,53 @@
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#020617" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      /* Base Typography */
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      h1, h2, h3, .font-display {
+        font-family: 'Oswald', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Aurora BG Animation */
+      @keyframes move-aurora-1 {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(20vw, 20vh) rotate(180deg); }
+        100% { transform: translate(0, 0) rotate(360deg); }
+      }
+      @keyframes move-aurora-2 {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(-30vw, -15vh) rotate(180deg); }
+        100% { transform: translate(0, 0) rotate(360deg); }
+      }
+      .aurora-1 {
+        animation: move-aurora-1 45s infinite linear;
+      }
+      .aurora-2 {
+        animation: move-aurora-2 60s infinite linear;
+      }
+      
+      /* Loader Animation */
+      @keyframes charge {
+        0%, 100% { opacity: 0.3; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+      .animate-charge {
+        animation: charge 2s infinite ease-in-out;
+      }
+
       @media print {
         body {
           background: white !important;
@@ -73,8 +115,10 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-900">
+  <body class="bg-slate-950 text-slate-300">
     <div id="root"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { DumbbellIcon } from './icons/DumbbellIcon';
 
@@ -21,15 +22,15 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     <div className="flex flex-col items-center justify-center h-full animate-fade-in">
       <div className="w-full max-w-sm text-center">
         <DumbbellIcon className="w-20 h-20 text-cyan-400 mx-auto" />
-        <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mt-4">
+        <h1 className="text-5xl md:text-6xl font-bold text-white mt-4" style={{textShadow: '0 0 12px rgb(34 211 238 / 0.5)'}}>
           IArnold
         </h1>
-        <p className="text-lg md:text-xl font-medium text-slate-300 mt-1">
-          Il tuo Personal Trainer <span className="text-cyan-400">AI</span>
+        <p className="text-lg font-medium text-slate-300 mt-2 tracking-wider">
+          Il tuo Personal Trainer <span className="font-bold text-cyan-400">AI</span>
         </p>
         
         <form onSubmit={handleSubmit} className="mt-10">
-          <label htmlFor="name" className="block text-md font-medium text-slate-300 mb-2">
+          <label htmlFor="name" className="block text-md font-medium text-slate-300 mb-2 font-display">
             Come ti chiami?
           </label>
           <input
@@ -37,7 +38,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-md p-3 text-center text-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            className="w-full bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-3 text-center text-lg focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
             placeholder="Il tuo nome"
             required
           />
@@ -56,7 +57,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
 
           <button
             type="submit"
-            className="w-full mt-6 px-6 py-3 bg-cyan-600 text-white font-bold text-lg rounded-lg hover:bg-cyan-700 transition-colors"
+            className="w-full mt-6 px-6 py-3 bg-amber-400 text-slate-900 font-bold text-lg rounded-lg hover:bg-amber-300 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-amber-500/20 hover:shadow-amber-400/40"
           >
             Entra
           </button>

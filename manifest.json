@@ -1,21 +1,46 @@
 {
   "short_name": "IArnold",
   "name": "IArnold - Personal Trainer AI",
+  "description": "Un personal trainer e diario di allenamento intelligente che crea piani su misura, traccia i tuoi progressi, analizza le tue performance con KPI e ti guida con consigli basati sull'IA.",
   "icons": [
     {
       "src": "/icon-192.svg",
       "type": "image/svg+xml",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.svg",
       "type": "image/svg+xml",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a",
-  "description": "Il tuo personal trainer e diario di allenamento AI."
+  "orientation": "portrait",
+  "theme_color": "#020617",
+  "background_color": "#020617",
+  "shortcuts": [
+    {
+      "name": "Crea Nuova Scheda",
+      "short_name": "Nuova Scheda",
+      "description": "Genera un nuovo piano di allenamento personalizzato",
+      "url": "/index.html#new-plan",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "I Miei Progressi",
+      "short_name": "Progressi",
+      "description": "Visualizza i tuoi progressi e le statistiche di allenamento",
+      "url": "/index.html#progress",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
 }

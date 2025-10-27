@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { HistoryEntry, UserData } from '../types';
 import { TargetIcon } from './icons/TargetIcon';
@@ -30,7 +32,7 @@ const parseRange = (range: string): number => {
 };
 
 const KpiCard = ({ title, value, icon, subValue }: { title: string; value: string; icon: React.ReactNode, subValue?: string }) => (
-  <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex items-start gap-4">
+  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-4 flex items-start gap-4">
     <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-cyan-900/50 rounded-lg text-cyan-400">
       {icon}
     </div>
@@ -45,7 +47,6 @@ const KpiCard = ({ title, value, icon, subValue }: { title: string; value: strin
 
 const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
   const [selectedExercise, setSelectedExercise] = useState<string>('');
-  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   
   const trackedHistory = useMemo(() => history.filter(entry => entry.trackedData && Object.keys(entry.trackedData).length > 0).reverse(), [history]);
 
@@ -204,35 +205,32 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
       });
   }, [trackedHistory]);
 
-  const selectedSession = useMemo(() => {
-      return history.find(h => h.id === selectedSessionId);
-  }, [selectedSessionId, history]);
+  const caloriesProgressData = useMemo(() => {
+    if (!userData) return [];
 
-  const caloriesBurned = useMemo(() => {
-    if (!selectedSession || !userData) return 0;
-    
-    let totalRestSeconds = 0;
-    let totalSets = 0;
-    selectedSession.plan.plan.forEach(day => {
-        day.exercises.forEach(ex => {
-            totalSets += parseRange(ex.sets);
-            totalRestSeconds += parseNumericValue(ex.rest) * parseRange(ex.sets);
+    return trackedHistory.map(session => {
+        let totalRestSeconds = 0;
+        let totalSets = 0;
+        session.plan.plan.forEach(day => {
+            day.exercises.forEach(ex => {
+                totalSets += parseRange(ex.sets);
+                totalRestSeconds += parseNumericValue(ex.rest) * parseRange(ex.sets);
+            });
         });
-    });
-    const durationMinutes = (totalRestSeconds + totalSets * 45) / 60; 
-    if (durationMinutes === 0) return 0;
-    
-    const MET = 6.0; 
-    const caloriesPerMinute = (MET * userData.weight * 3.5) / 200;
-    
-    return Math.round(caloriesPerMinute * durationMinutes);
+        const durationMinutes = (totalRestSeconds + totalSets * 45) / 60;
+        if (durationMinutes <= 0) return null;
+        
+        const MET = 6.0;
+        const caloriesPerMinute = (MET * userData.weight * 3.5) / 200;
+        const calories = Math.round(caloriesPerMinute * durationMinutes);
 
-  }, [selectedSession, userData]);
-
+        return { date: new Date(session.createdAt), calories };
+    }).filter(Boolean).filter(d => d && d.calories > 0) as { date: Date; calories: number }[];
+  }, [trackedHistory, userData]);
 
   const renderChart = (data: {date: Date, value: number}[], label: string, color: string) => {
     if (data.length < 2) {
-      return <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-900/50 rounded-md">Pochi dati per generare un grafico. Registra i pesi per più sessioni!</div>;
+      return <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-900/50 rounded-lg">Pochi dati per generare un grafico. Registra i tuoi progressi per più sessioni!</div>;
     }
     const maxValue = Math.max(...data.map(d => d.value));
     const minValue = Math.min(...data.map(d => d.value));
@@ -244,14 +242,23 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
         return `${x},${y}`;
     }).join(' ');
 
+    const svgId = `gradient-${label.replace(/[^a-zA-Z0-9]/g, '')}`;
+
     return (
-        <div className="w-full h-64 bg-slate-900/50 p-4 rounded-md relative">
+        <div className="w-full h-64 bg-slate-900/50 backdrop-blur-sm p-4 rounded-lg relative">
             <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id={svgId} x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor={color} stopOpacity={0.4}/>
+                        <stop offset="100%" stopColor={color} stopOpacity={0}/>
+                    </linearGradient>
+                </defs>
+                <polygon fill={`url(#${svgId})`} points={`${points} 100,100 0,100`} />
                 <polyline fill="none" stroke={color} strokeWidth="2" points={points} />
                 {data.map((d, i) => {
                     const x = (i / (data.length - 1)) * 100;
                     const y = 100 - ((d.value - minValue) / valueRange) * 100;
-                    return <circle key={i} cx={x} cy={y} r="1.5" fill={color} />;
+                    return <circle key={i} cx={x} cy={y} r="1.5" fill="white" stroke={color} strokeWidth="0.5" />;
                 })}
             </svg>
             <div className="absolute bottom-2 left-4 text-xs text-slate-400">
@@ -268,7 +275,7 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
   return (
     <div className="animate-fade-in space-y-8">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-cyan-400">I miei progressi</h2>
+        <h2 className="text-3xl font-bold text-cyan-400">I MIEI PROGRESSI</h2>
         <button
           onClick={onGoBack}
           className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-600 transition-colors"
@@ -278,7 +285,7 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
       </div>
 
       {history.length === 0 ? (
-        <div className="text-center p-8 bg-slate-800/50 border border-slate-700 rounded-lg">
+        <div className="text-center p-8 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg">
           <p className="text-slate-400">Non hai ancora registrato nessun allenamento. Completa una sessione e torna qui per vedere i tuoi progressi!</p>
         </div>
       ) : (
@@ -313,10 +320,10 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
             
             {/* Detailed Analysis Section */}
             <div className="space-y-4 pt-4">
-                <h3 className="text-2xl font-bold text-white mb-4">Analisi Dettagliata</h3>
+                <h3 className="text-2xl font-bold text-white mb-4">ANALISI DETTAGLIATA</h3>
                 {/* Exercise Progression Section */}
-                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-lg">
-                    <h3 className="text-xl font-bold text-white mb-4">Progressione per Esercizio</h3>
+                <div className="p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg">
+                    <h3 className="text-xl font-bold text-white mb-4">PROGRESSIONE PER ESERCIZIO</h3>
                     <select 
                         value={selectedExercise} 
                         onChange={e => setSelectedExercise(e.target.value)}
@@ -325,35 +332,92 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
                         <option value="">-- Seleziona un esercizio --</option>
                         {uniqueExercises.map(ex => <option key={ex} value={ex}>{ex}</option>)}
                     </select>
-                    {selectedExercise && renderChart(exerciseProgressData.map(d => ({date: d.date, value: d.weight})), 'Carico (kg)', '#22d3ee')}
+                    {selectedExercise && (
+                        <div className="mt-4 md:grid md:grid-cols-5 md:gap-6 items-start">
+                            <div className="md:col-span-3">
+                                {renderChart(exerciseProgressData.map(d => ({date: d.date, value: d.weight})), 'Carico (kg)', '#22d3ee')}
+                            </div>
+                            {exerciseProgressData.length > 0 && (
+                                <div className="mt-4 md:mt-0 md:col-span-2 max-h-72 overflow-y-auto">
+                                    {/* Mobile List View */}
+                                    <ul className="md:hidden space-y-2">
+                                        {exerciseProgressData.slice().reverse().map((data, index) => (
+                                            <li key={index} className="flex justify-between items-center p-2 bg-slate-900/40 rounded-md text-sm">
+                                                <span className="text-slate-400">{data.date.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                                <span className="font-medium text-white">{data.weight} kg</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    {/* Desktop Table View */}
+                                    <table className="hidden md:table w-full text-sm text-left text-slate-300">
+                                        <thead className="text-xs text-slate-400 uppercase bg-slate-800/50 sticky top-0 backdrop-blur-sm">
+                                            <tr>
+                                                <th scope="col" className="px-4 py-2">Data</th>
+                                                <th scope="col" className="px-4 py-2 text-right">Peso</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {exerciseProgressData.slice().reverse().map((data, index) => (
+                                                <tr key={index} className="border-b border-slate-700/50">
+                                                    <td className="px-4 py-2 whitespace-nowrap">{data.date.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                                    <td className="px-4 py-2 text-right font-medium">{data.weight} kg</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                 {/* Total Volume Section */}
-                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-lg">
-                    <h3 className="text-xl font-bold text-white mb-4">Volume Totale per Sessione (kg)</h3>
+                <div className="p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg">
+                    <h3 className="text-xl font-bold text-white mb-4">VOLUME TOTALE PER SESSIONE (KG)</h3>
                     {renderChart(totalVolumeData.map(d => ({date: d.date, value: d.volume})), 'Volume (kg)', '#818cf8')}
                 </div>
 
-                {/* Calorie Calculator Section */}
-                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-lg">
-                    <h3 className="text-xl font-bold text-white mb-4">Stima Calorie per Sessione</h3>
-                    <select 
-                        value={selectedSessionId} 
-                        onChange={e => setSelectedSessionId(e.target.value)}
-                        className="w-full mb-4 bg-slate-900 border border-slate-700 rounded-md p-2 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                    >
-                        <option value="">-- Seleziona una sessione completata --</option>
-                        {trackedHistory.map(s => <option key={s.id} value={s.id}>{s.plan.title.mainTitle} - {new Date(s.createdAt).toLocaleDateString('it-IT')}</option>)}
-                    </select>
-                    {selectedSessionId && userData && (
-                        <div className="text-center p-4 bg-slate-900/50 rounded-md">
-                            <p className="text-slate-300">Stima calorie bruciate per la sessione:</p>
-                            <p className="text-4xl font-bold text-cyan-400 mt-2">{caloriesBurned} kcal</p>
-                        </div>
-                    )}
-                    {selectedSessionId && !userData && (
-                        <p className="text-yellow-400 text-sm">Per calcolare le calorie, assicurati che i tuoi dati personali (peso, etc.) siano compilati nel modulo principale.</p>
-                    )}
+                {/* Stima Calorie Bruciate Section */}
+                <div className="p-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg">
+                    <h3 className="text-xl font-bold text-white mb-4">ANDAMENTO CALORIE BRUCIATE PER SESSIONE</h3>
+                    {userData ? 
+                        (
+                            <div className="space-y-4">
+                                {renderChart(caloriesProgressData.map(d => ({date: d.date, value: d.calories})), 'Calorie (kcal)', '#f43f5e')}
+                                {caloriesProgressData.length > 0 && (
+                                    <div className="mt-4 max-h-48 overflow-y-auto">
+                                         {/* Mobile List View */}
+                                        <ul className="md:hidden space-y-2">
+                                            {caloriesProgressData.slice().reverse().map((data, index) => (
+                                                <li key={index} className="flex justify-between items-center p-2 bg-slate-900/40 rounded-md text-sm">
+                                                    <span className="text-slate-400">{data.date.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                                    <span className="font-medium text-white">{data.calories} kcal</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {/* Desktop Table View */}
+                                        <table className="hidden md:table w-full text-sm text-left text-slate-300">
+                                            <thead className="text-xs text-slate-400 uppercase bg-slate-800/50 sticky top-0 backdrop-blur-sm">
+                                                <tr>
+                                                    <th scope="col" className="px-4 py-2">Data</th>
+                                                    <th scope="col" className="px-4 py-2 text-right">Calorie Stimate</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {caloriesProgressData.slice().reverse().map((data, index) => (
+                                                    <tr key={index} className="border-b border-slate-700/50">
+                                                        <td className="px-4 py-2 whitespace-nowrap">{data.date.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                                        <td className="px-4 py-2 text-right font-medium">{data.calories} kcal</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                        : <p className="text-yellow-400 text-sm p-4 text-center">I tuoi dati personali (es. peso) sono necessari per stimare le calorie. Assicurati che siano compilati nel modulo principale.</p>
+                    }
                 </div>
             </div>
         </>

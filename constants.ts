@@ -38,6 +38,7 @@ export const RECOMMENDED_SPLITS = [
     { id: 'Lascia decidere all\'IA', label: 'Lascia decidere all\'IA', description: 'L\'IA sceglierà la migliore struttura di allenamento per te in base ai dati forniti.' },
     { id: 'Push/Pull/Legs', label: 'Push/Pull/Legs', description: 'Una divisione classica:\n• Push: Spinta (petto, spalle, tricipiti)\n• Pull: Tirata (dorso, bicipiti)\n• Legs: Gambe e addome' },
     { id: 'Upper/Lower', label: 'Upper/Lower', description: 'Una divisione che separa gli allenamenti tra:\n• Upper: Parte superiore del corpo\n• Lower: Parte inferiore del corpo' },
+    { id: 'Front/Rear', label: 'Front/Rear', description: 'Una divisione che separa gli allenamenti tra:\n• Front: Catena cinetica anteriore (petto, spalle, quadricipiti)\n• Rear: Catena cinetica posteriore (dorso, femorali, glutei)' },
     { id: 'Full Body', label: 'Full Body', description: 'Alleni tutti i principali gruppi muscolari del corpo in ogni singola sessione.' },
     { id: 'Chiedi a IArnold', label: 'Chiedi a IArnold', description: 'Descrivi liberamente la scheda che vorresti e l\'IA la creerà per te.' },
 ];

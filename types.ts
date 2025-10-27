@@ -1,4 +1,3 @@
-
 export interface UserData {
   name: string;
   gender: 'male' | 'female' | 'other';
@@ -76,4 +75,8 @@ export interface ChatMessage {
   text: string;
 }
 
-export type View = 'login' | 'form' | 'plan' | 'history' | 'loading' | 'error' | 'progress';
+export type View = 'login' | 'form' | 'plan' | 'history' | 'loading' | 'error' | 'progress' | 'formCheck' | 'dashboard';
+
+export interface FormCheckTarget {
+  exerciseName: string;
+}
