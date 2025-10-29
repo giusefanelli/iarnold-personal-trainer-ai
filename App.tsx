@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { UserData, HistoryEntry, TrackedData, View, FormCheckTarget } from './types';
+import { UserData, HistoryEntry, TrackedData, View, FormCheckTarget, TrackedSetData, TrackedExerciseData } from './types';
 import { generateWorkoutPlan, generateWorkoutSummary } from './services/geminiService';
 import Header from './components/Header';
 import WorkoutForm from './components/WorkoutForm';
@@ -18,6 +18,46 @@ import Dashboard from './components/Dashboard';
 import PostWorkoutSummaryModal from './components/PostWorkoutSummaryModal';
 import ShareModal from './components/ShareModal';
 
+const migrateTrackedData = (history: HistoryEntry[]): HistoryEntry[] => {
+  return history.map(entry => {
+    const data = entry.trackedData;
+    if (!data) return entry;
+
+    const firstDayKey = Object.keys(data)[0];
+    if (!firstDayKey) return entry;
+    
+    const firstExKey = Object.keys(data[firstDayKey])[0];
+    if (!firstExKey) return entry;
+
+    const firstExData = (data as any)[firstDayKey][firstExKey];
+    if (firstExData && typeof firstExData.weight === 'string') {
+      // Old format detected (e.g., { weight: '80', notes: '...' }), needs migration.
+      const newTrackedData: TrackedData = {};
+      Object.entries(data).forEach(([dayKey, dayData]) => {
+          newTrackedData[dayKey] = {};
+          Object.entries(dayData as any).forEach(([exKey, exData]) => {
+              const oldExData = exData as { weight: string, notes: string };
+              const numSets = parseInt(entry.plan.plan[parseInt(dayKey, 10)]?.exercises[parseInt(exKey, 10)]?.sets, 10) || 1;
+              const newSets: TrackedSetData[] = Array.from({ length: numSets }, (_, i) => ({
+                // Put old weight in the first set, others empty
+                weight: i === 0 ? oldExData.weight || '' : '',
+                reps: '',
+              }));
+
+              (newTrackedData as any)[dayKey][exKey] = {
+                  sets: newSets,
+                  notes: oldExData.notes || ''
+              };
+          });
+      });
+      return { ...entry, trackedData: newTrackedData };
+    }
+    
+    // It's new format or empty, return as is
+    return entry;
+  });
+};
+
 function App() {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
@@ -33,13 +73,16 @@ function App() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // Check for the API key at the top level
-  const isApiKeyMissing = !import.meta.env.VITE_GEMINI_API_KEY;
-
   const loadUserDataFor = (userName: string) => {
     try {
       const savedHistory = localStorage.getItem(`workoutHistory_${userName}`);
-      if (savedHistory) setHistory(JSON.parse(savedHistory));
+      if (savedHistory) {
+        const parsedHistory = JSON.parse(savedHistory);
+        const migratedHistory = migrateTrackedData(parsedHistory);
+        setHistory(migratedHistory);
+        // Re-save migrated data so it's only done once
+        localStorage.setItem(`workoutHistory_${userName}`, JSON.stringify(migratedHistory));
+      }
       
       const savedUserData = localStorage.getItem(`workoutFormData_${userName}`);
       if (savedUserData) setUserData(JSON.parse(savedUserData));
@@ -56,8 +99,6 @@ function App() {
   };
 
   useEffect(() => {
-    if (isApiKeyMissing) return; // Don't proceed if API key is missing
-
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       setCurrentUser(savedUser);
@@ -79,7 +120,7 @@ function App() {
         sessionStorage.setItem(`welcomeModalShown_${savedUser}`, 'true');
       }
     }
-  }, [isApiKeyMissing]);
+  }, []);
   
   const handleLogin = (name: string, rememberMe: boolean) => {
     setCurrentUser(name);
@@ -234,6 +275,7 @@ function App() {
   };
 
   const renderContent = () => {
+    const isApiKeyMissing = !process.env.API_KEY;
     if (isApiKeyMissing) {
       return <ApiKeyPrompt />;
     }

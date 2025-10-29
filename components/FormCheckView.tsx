@@ -29,6 +29,38 @@ const FormCheckView: React.FC<Props> = ({ target, onExit }) => {
   const [feedback, setFeedback] = useState<string[]>([]);
   const [repCount, setRepCount] = useState(0);
 
+  const drawSkeleton = useCallback((keypoints: any[], ctx: CanvasRenderingContext2D, badKeypoints: string[] = []) => {
+    const adjacentKeyPoints = window.poseDetection.util.getAdjacentPairs(window.poseDetection.SupportedModels.MoveNet);
+    
+    // Draw connections
+    adjacentKeyPoints.forEach((pair: any) => {
+        const [i, j] = pair;
+        const kp1 = keypoints[i];
+        const kp2 = keypoints[j];
+
+        if (kp1.score > 0.5 && kp2.score > 0.5) {
+            const isBadConnection = badKeypoints.includes(kp1.name) || badKeypoints.includes(kp2.name);
+            ctx.beginPath();
+            ctx.moveTo(canvasRef.current!.width - kp1.x, kp1.y);
+            ctx.lineTo(canvasRef.current!.width - kp2.x, kp2.y);
+            ctx.lineWidth = isBadConnection ? 4 : 2;
+            ctx.strokeStyle = isBadConnection ? '#ef4444' : '#22d3ee'; // red for bad, cyan for good
+            ctx.stroke();
+        }
+    });
+
+    // Draw keypoints
+    keypoints.forEach(keypoint => {
+        if (keypoint.score > 0.5) {
+            const isBadKeypoint = badKeypoints.includes(keypoint.name);
+            ctx.beginPath();
+            ctx.arc(canvasRef.current!.width - keypoint.x, keypoint.y, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = isBadKeypoint ? '#ef4444' : '#22d3ee';
+            ctx.fill();
+        }
+    });
+  }, []);
+
   const detectPose = useCallback(async (video: HTMLVideoElement) => {
     if (detectorRef.current) {
         const poses = await detectorRef.current.estimatePoses(video);
@@ -39,7 +71,6 @@ const FormCheckView: React.FC<Props> = ({ target, onExit }) => {
             canvas.height = video.videoHeight;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw video frame on canvas (flipped horizontally)
             ctx.save();
             ctx.scale(-1, 1);
             ctx.translate(-canvas.width, 0);
@@ -48,40 +79,17 @@ const FormCheckView: React.FC<Props> = ({ target, onExit }) => {
 
             if (poses && poses.length > 0) {
                 const pose = poses[0];
-                const analysisResult = analyzerRef.current.analyze(pose.keypoints);
-                setFeedback(analysisResult.feedback);
-                setRepCount(analysisResult.repCount);
+                const { feedback, repCount, badKeypoints } = analyzerRef.current.analyze(pose.keypoints);
+                setFeedback(feedback);
+                setRepCount(repCount);
                 
-                // Draw skeleton
-                drawSkeleton(pose.keypoints, ctx);
+                drawSkeleton(pose.keypoints, ctx, badKeypoints);
             }
         }
     }
     animationFrameId.current = requestAnimationFrame(() => detectPose(video));
-  }, []);
+  }, [drawSkeleton]);
 
-  const drawSkeleton = (keypoints: any[], ctx: CanvasRenderingContext2D) => {
-    // Fix: Access poseDetection from the window object for consistency.
-    const adjacentKeyPoints = window.poseDetection.util.getAdjacentPairs(window.poseDetection.SupportedModels.MoveNet);
-    ctx.lineWidth = 2;
-    adjacentKeyPoints.forEach((pair: any) => {
-      const [i, j] = pair;
-      const kp1 = keypoints[i];
-      const kp2 = keypoints[j];
-      
-      // Flip keypoints horizontally to match the flipped video
-      const kp1_x_flipped = canvasRef.current!.width - kp1.x;
-      const kp2_x_flipped = canvasRef.current!.width - kp2.x;
-
-      if (kp1.score > 0.5 && kp2.score > 0.5) {
-        ctx.beginPath();
-        ctx.moveTo(kp1_x_flipped, kp1.y);
-        ctx.lineTo(kp2_x_flipped, kp2.y);
-        ctx.strokeStyle = '#22d3ee';
-        ctx.stroke();
-      }
-    });
-  };
 
   useEffect(() => {
     const initialize = async () => {

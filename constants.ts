@@ -42,3 +42,10 @@ export const RECOMMENDED_SPLITS = [
     { id: 'Full Body', label: 'Full Body', description: 'Alleni tutti i principali gruppi muscolari del corpo in ogni singola sessione.' },
     { id: 'Chiedi a IArnold', label: 'Chiedi a IArnold', description: 'Descrivi liberamente la scheda che vorresti e l\'IA la creerà per te.' },
 ];
+
+export const TRAINING_DURATIONS = [
+  { id: 'no_preference', label: 'Nessuna preferenza' },
+  { id: 'lt_45', label: '< 45 min' },
+  { id: '45_60', label: '45-60 min' },
+  { id: 'gt_60', label: '> 60 min' },
+];

@@ -25,6 +25,11 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose }) => {
     return null;
   }
 
+  // Use Google's Chart API for QR code generation for better reliability within the ecosystem.
+  const qrCodeUrl = appUrl
+    ? `https://chart.googleapis.com/chart?cht=qr&chs=256x256&chl=${encodeURIComponent(appUrl)}`
+    : '';
+
   const handleCopy = () => {
     navigator.clipboard.writeText(appUrl).then(() => {
       setCopied(true);
@@ -45,9 +50,19 @@ const ShareModal: React.FC<Props> = ({ isOpen, onClose }) => {
         onClick={e => e.stopPropagation()} // Prevent closing when clicking inside modal
       >
         <h2 id="share-modal-title" className="text-2xl font-bold text-cyan-400 mb-4">Condividi IArnold</h2>
-        <p className="text-slate-300 mb-6">Copia il link qui sotto per condividere l'app con chi vuoi.</p>
+        <p className="text-slate-300 mb-6">Inquadra il QR code o copia il link per condividere l'app.</p>
         
-        <div className="mt-2">
+        <div className="bg-white p-4 rounded-lg inline-block">
+          {qrCodeUrl ? (
+            <img src={qrCodeUrl} alt="QR Code per condividere l'app" width="256" height="256" />
+          ) : (
+            <div className="w-64 h-64 bg-slate-700 rounded-lg flex items-center justify-center">
+              <p className="text-slate-400">Generazione QR Code...</p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6">
           <label htmlFor="app-url" className="sr-only">Link dell'applicazione</label>
           <div className="relative">
             <input 

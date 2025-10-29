@@ -27,6 +27,7 @@ const RestTimer: React.FC<Props> = ({ restTime, isActive, onStart, onReset }) =>
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const warningBeepPlayedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Reset timer state when it becomes inactive
@@ -34,15 +35,58 @@ const RestTimer: React.FC<Props> = ({ restTime, isActive, onStart, onReset }) =>
       if (intervalRef.current) clearInterval(intervalRef.current);
       setTimeLeft(maxTime);
       setIsPaused(false);
+      warningBeepPlayedRef.current = false;
     }
   }, [isActive, maxTime]);
 
+  const playNote = (audioCtx: AudioContext, freq: number, startTime: number, duration: number) => {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(freq, startTime);
+
+    // Fade in/out to avoid clicking noise
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(0.4, startTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  };
+
+  const playSound = (type: 'warning' | 'end') => {
+    if (typeof window.AudioContext === 'undefined' && typeof (window as any).webkitAudioContext === 'undefined') {
+      return;
+    }
+    if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const audioCtx = audioContextRef.current;
+    if (audioCtx.state === 'suspended') return;
+
+    if (type === 'warning') {
+        playNote(audioCtx, 600, audioCtx.currentTime, 0.1); // Short, soft "tick"
+    } else if (type === 'end') {
+        const now = audioCtx.currentTime;
+        playNote(audioCtx, 523, now, 0.15);       // C5 note
+        playNote(audioCtx, 784, now + 0.2, 0.15); // G5 note, creating a pleasant chime
+    }
+  };
+
   useEffect(() => {
     if (isActive && !isPaused) {
+      const yellowThreshold = maxTime - minTime;
       intervalRef.current = window.setInterval(() => {
         setTimeLeft(prev => {
+          if (prev === yellowThreshold + 1 && !warningBeepPlayedRef.current) {
+            playSound('warning');
+            warningBeepPlayedRef.current = true;
+          }
           if (prev <= 1) {
-            playSound();
+            playSound('end');
           }
           if (prev <= 0) {
              if (intervalRef.current) clearInterval(intervalRef.current);
@@ -58,27 +102,16 @@ const RestTimer: React.FC<Props> = ({ restTime, isActive, onStart, onReset }) =>
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isActive, isPaused]);
+  }, [isActive, isPaused, minTime, maxTime]);
 
-
-  const playSound = () => {
-    if (typeof window.AudioContext === 'undefined' && typeof (window as any).webkitAudioContext === 'undefined') {
-      return;
-    }
+  const handleStart = () => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    const audioCtx = audioContextRef.current;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(660, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.5);
+    if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+    }
+    onStart();
   };
 
   const handlePauseToggle = (e: React.MouseEvent) => {
@@ -88,14 +121,16 @@ const RestTimer: React.FC<Props> = ({ restTime, isActive, onStart, onReset }) =>
 
   const handleReset = (e: React.MouseEvent) => {
       e.stopPropagation();
+      warningBeepPlayedRef.current = false;
       onReset();
   }
-
+  
+  const yellowThreshold = maxTime - minTime;
   const { colorClass, strokeClass } = useMemo(() => {
-    if (timeLeft > minTime) return { colorClass: 'text-green-400', strokeClass: 'stroke-green-400' };
+    if (timeLeft > yellowThreshold) return { colorClass: 'text-green-400', strokeClass: 'stroke-green-400' };
     if (timeLeft > 0) return { colorClass: 'text-yellow-400', strokeClass: 'stroke-yellow-400' };
     return { colorClass: 'text-red-500', strokeClass: 'stroke-red-500' };
-  }, [timeLeft, minTime]);
+  }, [timeLeft, yellowThreshold]);
   
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -109,7 +144,6 @@ const RestTimer: React.FC<Props> = ({ restTime, isActive, onStart, onReset }) =>
     const maxInMin = max / 60;
 
     const format = (num: number) => {
-        // If it's a whole number, return it as is. Otherwise, format to 1 decimal place with a comma.
         return num % 1 === 0 ? num.toString() : num.toFixed(1).replace('.', ',');
     }
 
@@ -122,7 +156,7 @@ const RestTimer: React.FC<Props> = ({ restTime, isActive, onStart, onReset }) =>
   if (!isActive) {
     return (
       <button 
-        onClick={onStart}
+        onClick={handleStart}
         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-600 transition-colors"
       >
         <ClockIcon className="w-5 h-5" />

@@ -9,13 +9,14 @@ export interface UserData {
   goal: 'hypertrophy' | 'strength' | 'fat_loss';
   experience: 'beginner' | 'intermediate' | 'advanced';
   trainingType: 'monofrequenza' | 'multifrequenza';
+  trainingDuration?: 'lt_45' | '45_60' | 'gt_60';
   focusMuscleGroups: string[];
   recommendedSplit?: string;
   customSplitDescription?: string;
   previousPlan?: {
-    content: string; // base64 for image, raw text for txt
-    type: 'image' | 'text';
-    mimeType?: string; // e.g., 'image/jpeg'
+    content: string; // base64 for image/pdf/word, raw text for txt
+    type: 'image' | 'text' | 'pdf' | 'word';
+    mimeType?: string; // e.g., 'image/jpeg', 'application/pdf'
   };
 }
 
@@ -52,12 +53,19 @@ export interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+export interface TrackedSetData {
+  weight: string;
+  reps: string;
+}
+
+export interface TrackedExerciseData {
+  sets: TrackedSetData[];
+  notes: string;
+}
+
 export interface TrackedData {
   [dayIndex: string]: {
-    [exerciseIndex: string]: {
-      weight: string;
-      notes: string;
-    };
+    [exerciseIndex: string]: TrackedExerciseData;
   };
 }
 

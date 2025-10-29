@@ -5,11 +5,15 @@ import { ReplaceIcon } from './icons/ReplaceIcon';
 import ExerciseSwapModal from './ExerciseSwapModal';
 import { CameraIcon } from './icons/CameraIcon';
 import { TrendingUpIcon } from './icons/TrendingUpIcon';
-import RestTimer from './RestTimer';
 import { SparklesIcon } from './icons/SparklesIcon';
 import { ChevronLeftIcon } from './icons/ChevronLeftIcon';
 import AccordionSection from './AccordionSection';
 import { FlameIcon } from './icons/FlameIcon';
+import { DocumentDownloadIcon } from './icons/DocumentDownloadIcon';
+import Tooltip from './Tooltip';
+import { DumbbellWeightIcon } from './icons/DumbbellWeightIcon';
+import { RepeatIcon } from './icons/RepeatIcon';
+import RestTimer from './RestTimer';
 
 interface Props {
   entry: HistoryEntry;
@@ -20,6 +24,20 @@ interface Props {
   onFinishWorkout: (entry: HistoryEntry) => void;
   onGoBack: () => void;
 }
+
+const SUPPORTED_FORM_CHECK_EXERCISES = [
+    'squat', 
+    'push up', 
+    'piegamenti', 
+    'curl',
+    'affondi',
+    'lunge',
+    'rematore',
+    'row',
+    'overhead press',
+    'lento avanti',
+    'military press'
+];
 
 const getMuscleGroupInfo = (focus: string): { name: string; gradient: string } => {
     const lowerFocus = focus.toLowerCase();
@@ -50,24 +68,24 @@ const NoteDisplay: React.FC<{ exercise: Exercise }> = ({ exercise }) => {
 
     if (isProgressionNote) {
         return (
-            <div className="flex items-center gap-2 mt-1 mb-3 text-xs font-semibold text-amber-300 p-2 bg-amber-500/10 border border-amber-500/20 rounded-md">
+            <div className="flex items-center gap-2 mt-2 text-xs font-semibold text-amber-300 p-2 bg-amber-500/10 border border-amber-500/20 rounded-md">
                 <TrendingUpIcon className="w-4 h-4 flex-shrink-0" />
                 <span>{exercise.note}</span>
             </div>
         );
     }
 
-    return <p className="text-xs text-slate-400 mt-1 mb-3">{exercise.note}</p>;
+    return <p className="text-xs text-slate-400 mt-2">{exercise.note}</p>;
 };
 
 const WorkoutPlan: React.FC<Props> = ({ entry, onNewPlan, onTrackData, onPlanUpdate, onStartFormCheck, onFinishWorkout, onGoBack }) => {
   const { plan, userData } = entry;
   const [trackedData, setTrackedData] = useState<TrackedData>(entry.trackedData || {});
+  const [activeTimerKey, setActiveTimerKey] = useState<string | null>(null);
   
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [exerciseToSwap, setExerciseToSwap] = useState<{ dayIndex: number; exIndex: number; name: string; focus: string; } | null>(null);
   const [modalPosition, setModalPosition] = useState<{ top: number; left: number | string; right?: number } | null>(null);
-  const [activeTimerKey, setActiveTimerKey] = useState<string | null>(null);
   const [isWarmupOpen, setIsWarmupOpen] = useState(false);
 
 
@@ -77,21 +95,29 @@ const WorkoutPlan: React.FC<Props> = ({ entry, onNewPlan, onTrackData, onPlanUpd
     }
   }, [trackedData, entry.id, entry.trackedData, onTrackData]);
 
-  const handleTrackingChange = (dayIndex: number, exIndex: number, field: 'weight' | 'notes', value: string) => {
+  const handleTrackingChange = (dayIndex: number, exIndex: number, field: 'notes' | 'weight' | 'reps', value: string, setIndex?: number) => {
     setTrackedData(prev => {
-      const dayKey = String(dayIndex);
-      const exKey = String(exIndex);
-      const updatedDay = {
-        ...(prev[dayKey] || {}),
-        [exKey]: {
-          ...(prev[dayKey]?.[exKey] || { weight: '', notes: '' }),
-          [field]: value,
-        },
-      };
-      return {
-        ...prev,
-        [dayKey]: updatedDay,
-      };
+        const dayKey = String(dayIndex);
+        const exKey = String(exIndex);
+
+        // Deep copy for safe mutation
+        const newTrackedData = JSON.parse(JSON.stringify(prev));
+
+        // Ensure path exists
+        if (!newTrackedData[dayKey]) newTrackedData[dayKey] = {};
+        if (!newTrackedData[dayKey][exKey]) newTrackedData[dayKey][exKey] = { sets: [], notes: '' };
+        
+        if (field === 'notes') {
+            newTrackedData[dayKey][exKey].notes = value;
+        } else if (setIndex !== undefined) {
+            // Ensure sets array is long enough, filling with empty objects if needed
+            while (newTrackedData[dayKey][exKey].sets.length <= setIndex) {
+                newTrackedData[dayKey][exKey].sets.push({ weight: '', reps: '' });
+            }
+            newTrackedData[dayKey][exKey].sets[setIndex][field] = value;
+        }
+
+        return newTrackedData;
     });
   };
 
@@ -150,6 +176,98 @@ const WorkoutPlan: React.FC<Props> = ({ entry, onNewPlan, onTrackData, onPlanUpd
   };
   
   const createYoutubeLink = (exerciseName: string) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`esecuzione ${exerciseName}`)}`;
+  
+  const handleDownloadAsWord = () => {
+    const { plan } = entry;
+    const title = plan.title.mainTitle || 'Piano_Allenamento';
+    const filename = `${title.replace(/\s+/g, '_')}.doc`;
+
+    let content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+            <meta charset='utf-8'>
+            <title>${title}</title>
+            <style>
+                body { font-family: Calibri, sans-serif; font-size: 11pt; }
+                h1, h2 { color: #2E74B5; }
+                h1 { font-size: 20pt; }
+                h2 { font-size: 16pt; }
+                table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+                th, td { border: 1px solid #BFBFBF; padding: 8px; text-align: left; }
+                th { background-color: #F2F2F2; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <h1>${plan.title.mainTitle}</h1>
+            <p><strong>${plan.title.subtitle}</strong></p>
+            <p>${plan.description}</p>
+            <h2>Note Importanti</h2>
+            <ul>${plan.notes.map(note => `<li>${note}</li>`).join('')}</ul>`;
+
+    plan.plan.forEach(dayPlan => {
+        content += `
+            <br clear="all" style="page-break-before:always" />
+            <h2>${dayPlan.day}: ${dayPlan.focus}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Esercizio</th>
+                        <th>Serie</th>
+                        <th>Reps</th>
+                        <th>Recupero</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        dayPlan.exercises.forEach(ex => {
+            content += `
+                <tr>
+                    <td>${ex.name}</td>
+                    <td>${ex.sets}</td>
+                    <td>${ex.reps}</td>
+                    <td>${ex.rest}</td>
+                    <td>${ex.note || ''}</td>
+                </tr>
+            `;
+        });
+        content += `</tbody></table>`;
+    });
+
+    content += `</body></html>`;
+
+    const url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(content);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const renderFormCheckButton = (exerciseName: string) => {
+    const isSupported = SUPPORTED_FORM_CHECK_EXERCISES.some(supported => exerciseName.toLowerCase().includes(supported));
+    
+    const button = (
+      <button
+        onClick={() => isSupported && onStartFormCheck(exerciseName)}
+        disabled={!isSupported}
+        className={`print-hidden p-1 text-slate-400 transition-colors ${isSupported ? 'hover:text-amber-400' : 'opacity-50 cursor-not-allowed'}`}
+        aria-label={isSupported ? "Verifica Esecuzione" : "Verifica Esecuzione (non disponibile)"}
+      >
+        <CameraIcon className="w-5 h-5" />
+      </button>
+    );
+
+    if (isSupported) {
+      return button;
+    }
+
+    return (
+      <Tooltip text="Vision Coach non ancora disponibile per questo esercizio.">
+        <span className="inline-block">{button}</span>
+      </Tooltip>
+    );
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -218,16 +336,17 @@ const WorkoutPlan: React.FC<Props> = ({ entry, onNewPlan, onTrackData, onPlanUpd
             <div key={dayIndex} className={`p-4 bg-gradient-to-br ${muscleInfo.gradient} rounded-lg border border-slate-700/50 break-inside-avoid backdrop-blur-sm`}>
               <h3 className="text-2xl font-bold text-white mb-4">{dayPlan.day} - <span className="text-cyan-400">{dayPlan.focus}</span></h3>
               
-              {/* Mobile view: cards */}
-              <div className="md:hidden space-y-4">
+              <div className="space-y-6">
                 {dayPlan.exercises.map((exercise, exIndex) => {
-                  const exerciseKey = `${dayIndex}-${exIndex}`;
-                  const isTracked = !!trackedData[String(dayIndex)]?.[String(exIndex)]?.weight;
+                  const timerKey = `${dayIndex}-${exIndex}`;
+                  const isTimerActive = activeTimerKey === timerKey;
+                  const numSets = parseInt(exercise.sets.split('-')[0], 10) || 1;
+                  const isTracked = trackedData[String(dayIndex)]?.[String(exIndex)]?.sets?.some(s => s.weight || s.reps);
+
                   return (
                     <div key={exIndex} className={`p-4 bg-slate-800/60 rounded-lg border transition-colors ${isTracked ? 'border-cyan-600/70' : 'border-slate-700/30'}`}>
                         <div className="flex justify-between items-start gap-2">
-                            <div>
-                                <h4 className="font-semibold text-white text-base">
+                            <h4 className="font-semibold text-white text-lg flex-grow">
                                 <a 
                                     href={createYoutubeLink(exercise.name)}
                                     target="_blank"
@@ -237,140 +356,84 @@ const WorkoutPlan: React.FC<Props> = ({ entry, onNewPlan, onTrackData, onPlanUpd
                                 >
                                     {exercise.name}
                                 </a>
-                                </h4>
-                            </div>
+                            </h4>
                             <div className="flex items-center flex-shrink-0">
                                 <button onClick={(e) => handleOpenSwapModal(e, dayIndex, exIndex, exercise.name, dayPlan.focus)} className="print-hidden p-1 text-slate-400 hover:text-cyan-400 transition-colors" aria-label="Sostituisci esercizio">
-                                    <ReplaceIcon className="w-4 h-4" />
+                                    <ReplaceIcon className="w-5 h-5" />
                                 </button>
-                                <button onClick={() => onStartFormCheck(exercise.name)} className="print-hidden p-1 text-slate-400 hover:text-amber-400 transition-colors" aria-label="Verifica Esecuzione">
-                                    <CameraIcon className="w-5 h-5" />
-                                </button>
+                                {renderFormCheckButton(exercise.name)}
                             </div>
                         </div>
-                        <NoteDisplay exercise={exercise} />
-                        <div className="grid grid-cols-4 gap-2 mt-3 text-center border-t border-slate-700/50 pt-3">
-                            <div>
-                                <p className="text-xs text-slate-400 uppercase tracking-wider font-display">Serie</p>
-                                <p className="font-bold text-slate-100 text-lg">{exercise.sets}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-400 uppercase tracking-wider font-display">Reps</p>
-                                <p className="font-bold text-slate-100 text-lg">{exercise.reps}</p>
-                            </div>
-                            <div className="col-span-2">
-                                <RestTimer
-                                    key={exerciseKey}
-                                    restTime={exercise.rest}
-                                    isActive={activeTimerKey === exerciseKey}
-                                    onStart={() => setActiveTimerKey(exerciseKey)}
-                                    onReset={() => setActiveTimerKey(null)}
-                                />
-                            </div>
-                        </div>
-                        {/* Tracking Fields - Mobile */}
-                        <div className="border-t border-slate-700/50 pt-3 mt-3 space-y-2 print-hidden">
-                        <div>
-                            <label className="text-xs text-slate-300 uppercase tracking-wider font-display">Peso Utilizzato</label>
-                            <input
-                            type="text"
-                            className="w-full mt-1 bg-slate-900/80 border border-slate-600 rounded-md p-2 text-white text-sm focus:ring-1 focus:ring-cyan-500"
-                            placeholder="Es. 80kg"
-                            value={trackedData[String(dayIndex)]?.[String(exIndex)]?.weight || ''}
-                            onChange={(e) => handleTrackingChange(dayIndex, exIndex, 'weight', e.target.value)}
+
+                        <div className="grid grid-cols-3 items-center gap-4 mt-2 text-sm text-slate-300">
+                          <div className="flex items-center gap-2">
+                            <DumbbellWeightIcon className="w-5 h-5 text-cyan-400" />
+                            <span><strong className="text-white">{exercise.sets}</strong> Serie</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <RepeatIcon className="w-5 h-5 text-cyan-400" />
+                            <span><strong className="text-white">{exercise.reps}</strong> Reps</span>
+                          </div>
+                           <div className="flex justify-end">
+                            <RestTimer
+                                restTime={exercise.rest}
+                                isActive={isTimerActive}
+                                onStart={() => setActiveTimerKey(timerKey)}
+                                onReset={() => setActiveTimerKey(null)}
                             />
+                          </div>
                         </div>
-                        <div>
-                            <label className="text-xs text-slate-300 uppercase tracking-wider font-display">Note Personali</label>
-                            <input
-                            type="text"
+
+                        <NoteDisplay exercise={exercise} />
+                        
+                        {/* Tracking Inputs Section */}
+                        <div className="mt-4 space-y-2 print-hidden">
+                            <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400">
+                                <div className="col-span-3">SERIE</div>
+                                <div className="col-span-4 text-center">PESO (KG)</div>
+                                <div className="col-span-4 text-center">RIPETIZIONI</div>
+                            </div>
+                            {Array.from({ length: numSets }).map((_, setIndex) => (
+                               <div key={setIndex} className="grid grid-cols-12 gap-2 items-center">
+                                 <div className="col-span-3">
+                                   <div className="px-3 py-2 bg-slate-900/80 rounded-md text-center font-semibold text-slate-200">
+                                     {setIndex + 1}
+                                   </div>
+                                 </div>
+                                 <div className="col-span-4">
+                                   <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white text-center text-sm focus:ring-1 focus:ring-cyan-500"
+                                      placeholder="--"
+                                      value={trackedData[String(dayIndex)]?.[String(exIndex)]?.sets[setIndex]?.weight || ''}
+                                      onChange={(e) => handleTrackingChange(dayIndex, exIndex, 'weight', e.target.value, setIndex)}
+                                   />
+                                 </div>
+                                 <div className="col-span-4">
+                                  <input
+                                      type="number"
+                                      inputMode="numeric"
+                                      className="w-full bg-slate-700 border border-slate-600 rounded-md p-2 text-white text-center text-sm focus:ring-1 focus:ring-cyan-500"
+                                      placeholder="--"
+                                      value={trackedData[String(dayIndex)]?.[String(exIndex)]?.sets[setIndex]?.reps || ''}
+                                      onChange={(e) => handleTrackingChange(dayIndex, exIndex, 'reps', e.target.value, setIndex)}
+                                   />
+                                 </div>
+                               </div>
+                            ))}
+                        </div>
+                        <div className="mt-4 print-hidden">
+                           <textarea
                             className="w-full mt-1 bg-slate-900/80 border border-slate-600 rounded-md p-2 text-white text-sm focus:ring-1 focus:ring-cyan-500"
-                            placeholder="Es. +2 reps, prossima volta +2.5kg"
+                            placeholder="Note personali sull'esercizio..."
+                            rows={2}
                             value={trackedData[String(dayIndex)]?.[String(exIndex)]?.notes || ''}
                             onChange={(e) => handleTrackingChange(dayIndex, exIndex, 'notes', e.target.value)}
-                            />
-                        </div>
+                           />
                         </div>
                     </div>
-                )})}
-              </div>
-
-              {/* Desktop view: table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left text-sm md:text-base">
-                  <thead className="text-xs text-slate-200 uppercase bg-black/20 font-display tracking-wider">
-                    <tr>
-                      <th scope="col" className="px-4 py-3">Esercizio</th>
-                      <th scope="col" className="px-4 py-3 text-center">Serie</th>
-                      <th scope="col" className="px-4 py-3 text-center">Reps</th>
-                      <th scope="col" className="px-4 py-3 text-center">Recupero</th>
-                      <th scope="col" className="px-4 py-3 text-center print-hidden">Peso Utilizzato</th>
-                      <th scope="col" className="px-4 py-3 text-center print-hidden">Note Personali</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dayPlan.exercises.map((exercise, exIndex) => {
-                      const exerciseKey = `${dayIndex}-${exIndex}`;
-                      const isTracked = !!trackedData[String(dayIndex)]?.[String(exIndex)]?.weight;
-                      return (
-                      <tr key={exIndex} className={`border-b border-slate-700/50 transition-colors ${isTracked ? 'bg-cyan-900/10' : 'hover:bg-slate-800/40'}`}>
-                        <td className="px-4 py-3 font-medium text-white whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <a 
-                              href={createYoutubeLink(exercise.name)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="exercise-link hover:text-cyan-400 hover:underline transition-colors"
-                              aria-label={`Cerca video per ${exercise.name} su YouTube`}
-                            >
-                              {exercise.name}
-                            </a>
-                            <button onClick={(e) => handleOpenSwapModal(e, dayIndex, exIndex, exercise.name, dayPlan.focus)} className="print-hidden p-1 text-slate-400 hover:text-cyan-400 transition-colors" aria-label="Sostituisci esercizio">
-                                <ReplaceIcon className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => onStartFormCheck(exercise.name)} className="print-hidden p-1 text-slate-400 hover:text-amber-400 transition-colors" aria-label="Verifica Esecuzione">
-                                <CameraIcon className="w-5 h-5" />
-                            </button>
-                          </div>
-                          {exercise.note && (
-                              <div className="max-w-xs">
-                                <NoteDisplay exercise={exercise} />
-                              </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center text-slate-100">{exercise.sets}</td>
-                        <td className="px-4 py-3 text-center text-slate-100">{exercise.reps}</td>
-                        <td className="px-4 py-3 text-center text-slate-100 print-hidden">
-                          <RestTimer
-                              key={exerciseKey}
-                              restTime={exercise.rest}
-                              isActive={activeTimerKey === exerciseKey}
-                              onStart={() => setActiveTimerKey(exerciseKey)}
-                              onReset={() => setActiveTimerKey(null)}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-center print-hidden">
-                            <input
-                                type="text"
-                                className="w-24 bg-slate-700 border border-slate-600 rounded-md p-1 text-center text-white focus:ring-1 focus:ring-cyan-500"
-                                placeholder="kg/lbs"
-                                value={trackedData[String(dayIndex)]?.[String(exIndex)]?.weight || ''}
-                                onChange={(e) => handleTrackingChange(dayIndex, exIndex, 'weight', e.target.value)}
-                            />
-                        </td>
-                        <td className="px-4 py-3 text-center print-hidden">
-                             <input
-                                type="text"
-                                className="w-full min-w-[150px] bg-slate-700 border border-slate-600 rounded-md p-1 text-white focus:ring-1 focus:ring-cyan-500"
-                                placeholder="Le tue note..."
-                                value={trackedData[String(dayIndex)]?.[String(exIndex)]?.notes || ''}
-                                onChange={(e) => handleTrackingChange(dayIndex, exIndex, 'notes', e.target.value)}
-                            />
-                        </td>
-                      </tr>
-                    )})}
-                  </tbody>
-                </table>
+                  )})}
               </div>
             </div>
           )})}
@@ -384,6 +447,14 @@ const WorkoutPlan: React.FC<Props> = ({ entry, onNewPlan, onTrackData, onPlanUpd
         >
           <SparklesIcon className="w-6 h-6" />
           Termina Allenamento e Ottieni Riepilogo AI
+        </button>
+        <button
+          onClick={handleDownloadAsWord}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-600 text-white font-semibold rounded-lg hover:bg-slate-700 transition-colors"
+          aria-label="Scarica come documento Word"
+        >
+          <DocumentDownloadIcon className="w-5 h-5" />
+          <span>Scarica</span>
         </button>
       </div>
       

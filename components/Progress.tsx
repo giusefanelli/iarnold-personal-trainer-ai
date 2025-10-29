@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useMemo } from 'react';
 import { HistoryEntry, UserData } from '../types';
 import { TargetIcon } from './icons/TargetIcon';
@@ -17,18 +14,6 @@ const parseNumericValue = (value: string): number => {
   if (!value) return 0;
   const match = value.match(/[\d.]+/);
   return match ? parseFloat(match[0]) : 0;
-};
-
-const parseRange = (range: string): number => {
-  if (!range || typeof range !== 'string') return 0;
-  if (range.includes('-')) {
-    const parts = range.split('-').map(s => parseInt(s.trim(), 10));
-    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-      return (parts[0] + parts[1]) / 2;
-    }
-  }
-  const singleVal = parseInt(range.trim(), 10);
-  return isNaN(singleVal) ? 0 : singleVal;
 };
 
 const KpiCard = ({ title, value, icon, subValue }: { title: string; value: string; icon: React.ReactNode, subValue?: string }) => (
@@ -63,29 +48,33 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
   }, [trackedHistory]);
 
   const { consistency, bestImprover, volumeStats, calorieStats } = useMemo(() => {
+    const completedWorkouts = trackedHistory.length;
+    
     // Consistency KPI
     const totalGenerated = history.length;
-    const completedWorkouts = trackedHistory.length;
     const skippedWorkouts = totalGenerated - completedWorkouts;
     const successRate = totalGenerated > 0 ? Math.round((completedWorkouts / totalGenerated) * 100) : 0;
     
     // Best Improver KPI
     let bestExercise: { name: string; improvement: number; start: number; end: number; } | null = null;
-    if (trackedHistory.length > 1) {
+    if (completedWorkouts > 1) {
         uniqueExercises.forEach(exName => {
             const progress = trackedHistory.map(entry => {
-                let weight = 0;
+                let maxWeight = 0;
                  entry.plan.plan.forEach((day, dayIndex) => {
                     day.exercises.forEach((ex, exIndex) => {
                         if (ex.name === exName) {
-                            const trackedWeight = entry.trackedData?.[dayIndex]?.[exIndex]?.weight;
-                            if (trackedWeight) {
-                                weight = Math.max(weight, parseNumericValue(trackedWeight));
+                            const trackedSets = entry.trackedData?.[dayIndex]?.[exIndex]?.sets;
+                            if(trackedSets) {
+                                for (const set of trackedSets) {
+                                    const weight = parseNumericValue(set.weight);
+                                    if (weight > maxWeight) maxWeight = weight;
+                                }
                             }
                         }
                     });
                 });
-                return weight > 0 ? weight : null;
+                return maxWeight > 0 ? maxWeight : null;
             }).filter(Boolean) as number[];
 
             if (progress.length > 1) {
@@ -108,28 +97,44 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
     trackedHistory.forEach(entry => {
         let sessionVolume = 0;
         let totalRestSeconds = 0;
-        let totalSets = 0;
+        let trackedSetsCount = 0;
 
-        entry.plan.plan.forEach((day, dayIndex) => {
-            day.exercises.forEach((ex, exIndex) => {
-                 totalSets += parseRange(ex.sets);
-                 totalRestSeconds += parseNumericValue(ex.rest) * parseRange(ex.sets);
-                const trackedWeight = entry.trackedData?.[dayIndex]?.[exIndex]?.weight;
-                if (trackedWeight) {
-                    const weight = parseNumericValue(trackedWeight);
-                    const sets = parseRange(ex.sets);
-                    const reps = parseRange(ex.reps);
-                    sessionVolume += sets * reps * weight;
-                }
+        if (entry.trackedData) {
+            Object.values(entry.trackedData).forEach(dayData => {
+                Object.values(dayData).forEach(exTrackedData => {
+                    if (exTrackedData.sets) {
+                        exTrackedData.sets.forEach(set => {
+                            const weight = parseNumericValue(set.weight);
+                            const reps = parseNumericValue(set.reps);
+                            if (weight > 0 && reps > 0) {
+                                sessionVolume += weight * reps;
+                            }
+                        });
+                    }
+                });
             });
-        });
+        }
         
         if (sessionVolume > 0) {
             sessionVolumes.push(sessionVolume);
         }
 
-        if (userData) {
-            const durationMinutes = (totalRestSeconds + totalSets * 45) / 60;
+        if (userData && entry.trackedData) {
+             entry.plan.plan.forEach((day, dayIndex) => {
+                day.exercises.forEach((ex, exIndex) => {
+                    const trackedExercise = entry.trackedData?.[dayIndex]?.[exIndex];
+                    if (trackedExercise && trackedExercise.sets) {
+                        const setsPerformed = trackedExercise.sets.filter(s => parseNumericValue(s.weight) > 0 && parseNumericValue(s.reps) > 0).length;
+                        if (setsPerformed > 0) {
+                            trackedSetsCount += setsPerformed;
+                            const rest = parseNumericValue(ex.rest.split('-')[0]); 
+                            totalRestSeconds += rest * (setsPerformed > 1 ? setsPerformed - 1 : 0);
+                        }
+                    }
+                });
+            });
+            
+            const durationMinutes = (totalRestSeconds + trackedSetsCount * 45) / 60;
             if (durationMinutes > 0) {
                 const MET = 6.0;
                 const caloriesPerMinute = (MET * userData.weight * 3.5) / 200;
@@ -171,18 +176,21 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
     if (!selectedExercise) return [];
     return trackedHistory
       .map(entry => {
-        let weight = 0;
+        let maxWeight = 0;
         entry.plan.plan.forEach((day, dayIndex) => {
           day.exercises.forEach((ex, exIndex) => {
             if (ex.name === selectedExercise) {
-              const trackedWeight = entry.trackedData?.[dayIndex]?.[exIndex]?.weight;
-              if (trackedWeight) {
-                weight = Math.max(weight, parseNumericValue(trackedWeight));
+              const trackedSets = entry.trackedData?.[dayIndex]?.[exIndex]?.sets;
+              if (trackedSets) {
+                for (const set of trackedSets) {
+                  const weight = parseNumericValue(set.weight);
+                  if (weight > maxWeight) maxWeight = weight;
+                }
               }
             }
           });
         });
-        return weight > 0 ? { date: new Date(entry.createdAt), weight } : null;
+        return maxWeight > 0 ? { date: new Date(entry.createdAt), weight: maxWeight } : null;
       })
       .filter(Boolean) as { date: Date; weight: number }[];
   }, [selectedExercise, trackedHistory]);
@@ -190,19 +198,23 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
   const totalVolumeData = useMemo(() => {
       return trackedHistory.map(entry => {
           let totalVolume = 0;
-          entry.plan.plan.forEach((day, dayIndex) => {
-              day.exercises.forEach((ex, exIndex) => {
-                  const trackedWeight = entry.trackedData?.[dayIndex]?.[exIndex]?.weight;
-                  if (trackedWeight) {
-                      const weight = parseNumericValue(trackedWeight);
-                      const sets = parseRange(ex.sets);
-                      const reps = parseRange(ex.reps);
-                      totalVolume += sets * reps * weight;
-                  }
-              });
-          });
+          if (entry.trackedData) {
+            Object.values(entry.trackedData).forEach(dayData => {
+                Object.values(dayData).forEach(exTrackedData => {
+                    if (exTrackedData.sets) {
+                        exTrackedData.sets.forEach(set => {
+                            const weight = parseNumericValue(set.weight);
+                            const reps = parseNumericValue(set.reps);
+                            if (weight > 0 && reps > 0) {
+                                totalVolume += weight * reps;
+                            }
+                        });
+                    }
+                });
+            });
+        }
           return { date: new Date(entry.createdAt), volume: totalVolume };
-      });
+      }).filter(item => item.volume > 0);
   }, [trackedHistory]);
 
   const caloriesProgressData = useMemo(() => {
@@ -210,14 +222,24 @@ const Progress: React.FC<Props> = ({ history, userData, onGoBack }) => {
 
     return trackedHistory.map(session => {
         let totalRestSeconds = 0;
-        let totalSets = 0;
-        session.plan.plan.forEach(day => {
-            day.exercises.forEach(ex => {
-                totalSets += parseRange(ex.sets);
-                totalRestSeconds += parseNumericValue(ex.rest) * parseRange(ex.sets);
+        let trackedSetsCount = 0;
+        if (session.trackedData) {
+            session.plan.plan.forEach((day, dayIndex) => {
+                day.exercises.forEach((ex, exIndex) => {
+                    const trackedExercise = session.trackedData?.[dayIndex]?.[exIndex];
+                    if (trackedExercise && trackedExercise.sets) {
+                        const setsPerformed = trackedExercise.sets.filter(s => parseNumericValue(s.weight) > 0 && parseNumericValue(s.reps) > 0).length;
+                        if (setsPerformed > 0) {
+                            trackedSetsCount += setsPerformed;
+                            const rest = parseNumericValue(ex.rest.split('-')[0]);
+                            totalRestSeconds += rest * (setsPerformed > 1 ? setsPerformed - 1 : 0);
+                        }
+                    }
+                });
             });
-        });
-        const durationMinutes = (totalRestSeconds + totalSets * 45) / 60;
+        }
+        
+        const durationMinutes = (totalRestSeconds + trackedSetsCount * 45) / 60;
         if (durationMinutes <= 0) return null;
         
         const MET = 6.0;

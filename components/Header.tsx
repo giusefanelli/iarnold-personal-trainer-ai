@@ -16,7 +16,15 @@ interface HeaderProps {
     onShareClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ userName, onLogout, onHistoryClick, onProgressClick, onGuideClick, onHomeClick, onShareClick }) => {
+const Header: React.FC<HeaderProps> = ({ 
+    userName, 
+    onLogout, 
+    onHistoryClick, 
+    onProgressClick, 
+    onGuideClick, 
+    onHomeClick, 
+    onShareClick,
+}) => {
   return (
     <header className="py-6 print:hidden">
       <div className="container mx-auto px-4 flex justify-between items-center">
